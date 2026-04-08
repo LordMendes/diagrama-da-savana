@@ -36,10 +36,14 @@ defmodule DiagramaSavana.Accounts.User do
       message: "deve ter no máximo %{count} caracteres"
     )
     |> unique_constraint(:email, message: "já está em uso")
-    |> validate_length(:password, min: 8, count: :bytes,
+    |> validate_length(:password,
+      min: 8,
+      count: :bytes,
       message: "deve ter no mínimo %{count} bytes"
     )
-    |> validate_length(:password, max: 72, count: :bytes,
+    |> validate_length(:password,
+      max: 72,
+      count: :bytes,
       message: "deve ter no máximo %{count} bytes"
     )
     |> validate_confirmation(:password, message: "não confere com a confirmação")
@@ -74,10 +78,14 @@ defmodule DiagramaSavana.Accounts.User do
     |> validate_required([:password, :password_confirmation],
       message: "não pode ficar em branco"
     )
-    |> validate_length(:password, min: 8, count: :bytes,
+    |> validate_length(:password,
+      min: 8,
+      count: :bytes,
       message: "deve ter no mínimo %{count} bytes"
     )
-    |> validate_length(:password, max: 72, count: :bytes,
+    |> validate_length(:password,
+      max: 72,
+      count: :bytes,
       message: "deve ter no máximo %{count} bytes"
     )
     |> validate_confirmation(:password, message: "não confere com a confirmação")

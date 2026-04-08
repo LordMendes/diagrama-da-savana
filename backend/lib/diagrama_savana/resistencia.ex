@@ -88,7 +88,7 @@ defmodule DiagramaSavana.Resistencia do
     |> Ecto.Changeset.change()
     |> Ecto.Changeset.add_error(
       :base,
-      "Nota de resistência está disponível apenas para ações, ETFs e FIIs."
+      "Nota de resistência está disponível para ações, ETFs, FIIs e cripto."
     )
   end
 

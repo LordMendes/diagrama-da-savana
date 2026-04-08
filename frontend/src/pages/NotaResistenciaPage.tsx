@@ -19,14 +19,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { PageError, PageLoading } from "@/components/layout/PageStatus";
 
-const RESISTANCE_KINDS = new Set(["acao", "etf", "fii"]);
+const RESISTANCE_KINDS = new Set(["acao", "etf", "fii", "cripto"]);
 
 /** Stable fallbacks so hooks that depend on array identity do not re-run every render. */
 const EMPTY_HOLDINGS: Holding[] = [];
 const EMPTY_CRITERIA: ResistanceCriterion[] = [];
 
-function criteriaKindForAsset(kind: string): "acao" | "fii" | null {
+function criteriaKindForAsset(kind: string): "acao" | "fii" | "cripto" | null {
   if (kind === "fii") return "fii";
+  if (kind === "cripto") return "cripto";
   if (kind === "acao" || kind === "etf") return "acao";
   return null;
 }
@@ -227,8 +228,8 @@ export function NotaResistenciaPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Adicione à carteira pelo menos uma ação, ETF ou FII para preencher
-              a nota de resistência.
+              Adicione à carteira pelo menos uma ação, ETF, FII ou cripto para
+              preencher a nota de resistência.
             </p>
           </CardContent>
         </Card>
@@ -238,7 +239,7 @@ export function NotaResistenciaPage() {
             <CardTitle className="text-lg">Critérios por ativo</CardTitle>
             <p className="text-sm text-muted-foreground">
               Escolha uma posição da carteira. ETFs usam o mesmo checklist de
-              ações.
+              ações; criptoativos têm checklist próprio.
             </p>
           </CardHeader>
           <CardContent className="space-y-6">

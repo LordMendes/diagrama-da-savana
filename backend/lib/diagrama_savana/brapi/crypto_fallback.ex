@@ -10,6 +10,13 @@ defmodule DiagramaSavana.Brapi.CryptoFallback do
     WBTC DAI BUSD LEO FET SUSHI GALA RUNE PEPE WIF BONK JUP PYTH TIA SEI STRK
   )
 
+  @doc false
+  @spec crypto_symbol?(String.t()) :: boolean()
+  def crypto_symbol?(ticker) when is_binary(ticker) do
+    t = ticker |> String.trim() |> String.upcase()
+    t != "" and t in @tickers
+  end
+
   @spec matching(String.t()) :: [String.t()]
   def matching(query) when is_binary(query) do
     q = query |> String.trim() |> String.upcase()

@@ -21,7 +21,10 @@ defmodule DiagramaSavana.ResistenciaTest do
     {:ok, %Asset{} = asset} =
       Ativos.create_asset(%{ticker: "TSTE4", kind: :acao})
 
-    {:ok, user: user, asset: asset}
+    {:ok, %Asset{} = asset_cripto} =
+      Ativos.create_asset(%{ticker: "TSTBTC", kind: :cripto})
+
+    {:ok, user: user, asset: asset, asset_cripto: asset_cripto}
   end
 
   describe "upsert_profile/3 e elegibilidade" do
@@ -58,6 +61,20 @@ defmodule DiagramaSavana.ResistenciaTest do
 
       ids = Resistencia.eligible_asset_ids_for_user(user.id)
       assert asset.id in ids
+    end
+
+    test "persiste nota para cripto com critérios próprios", %{
+      user: user,
+      asset_cripto: asset_cripto
+    } do
+      crit = %{"adopcao_ecossistema" => 1, "tokenomics" => 1}
+
+      assert {:ok, %Profile{} = p} =
+               Resistencia.upsert_profile(user, asset_cripto, %{"criteria" => crit})
+
+      assert p.computed_score == 2
+      assert map_size(p.criteria_stub) == 12
+      assert Resistencia.eligible_for_allocation?(p)
     end
   end
 end

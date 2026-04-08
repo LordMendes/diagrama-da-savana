@@ -18,7 +18,7 @@ export type ResistanceProfileRow = {
 };
 
 export async function fetchResistanceCriteria(
-  kind: "acao" | "fii",
+  kind: "acao" | "fii" | "cripto",
   token: string,
 ) {
   const qs = new URLSearchParams({ kind });

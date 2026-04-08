@@ -93,7 +93,7 @@ Todas exigem `Authorization: Bearer` + access token. Envelope de sucesso: `{ "da
 | `DELETE` | `/api/v1/portfolios/:portfolio_id/target_allocations/:id` | Remove |
 | `POST` | `/api/v1/portfolios/:portfolio_id/simulacao_aporte` | Simula aporte/rebalanceamento (`simulacao_aporte.amount`) — ver `DomainJSON.simulacao_result/1` |
 | `POST` | `/api/v1/portfolios/:portfolio_id/simulacao_aporte/aplicar` | Aplica compras calculadas + registro de aporte |
-| `GET` | `/api/v1/resistance_criteria` | Query `kind=acao` (ações/ETFs) ou `kind=fii` — lista critérios do checklist |
+| `GET` | `/api/v1/resistance_criteria` | Query `kind=acao` (ações/ETFs), `kind=fii` ou `kind=cripto` — lista critérios do checklist |
 | `GET` | `/api/v1/resistance_profiles` | Lista perfis de nota de resistência |
 | `GET` | `/api/v1/resistance_profiles/:asset_id` | Perfil por ativo |
 | `PUT` | `/api/v1/resistance_profiles/:asset_id` | Cria/atualiza com `resistance_profile.criteria` (mapa id → −1, 0 ou 1); `computed_score` é calculado no servidor (−5 a +10) |
@@ -101,7 +101,9 @@ Todas exigem `Authorization: Bearer` + access token. Envelope de sucesso: `{ "da
 
 ### Mercado (brapi.dev)
 
-Proxy autenticado: o frontend não chama a brapi diretamente; o backend aplica **rate limiting** (ETS, `BRAPI_RATE_LIMIT_PER_MINUTE`) e **cache** (`BRAPI_CACHE_TTL_SECONDS`) nos módulos `DiagramaSavana.Brapi.*`.
+Proxy autenticado: o frontend não chama a brapi diretamente; o backend aplica **rate limiting** (ETS, `BRAPI_RATE_LIMIT_PER_MINUTE`) e **cache** (`BRAPI_CACHE_TTL_SECONDS`) nos módulos `DiagramaSavana.Brapi.*`. Por padrão as cotações são **uma requisição por ticker**; cotação em lote (`BRAPI_QUOTE_BATCH_SIZE` + `BRAPI_QUOTE_BATCH_ENABLED=true`) só para planos brapi que permitam `/quote/A,B,...`.
+
+A simulação de aporte (`POST .../simulacao_aporte`) usa cache em memória do resultado por carteira/valor/versão dos dados (`SIMULACAO_APORTE_CACHE_TTL_SECONDS`, padrão **1800** s). A aplicação (`.../simulacao_aporte/aplicar`) **não** usa esse cache.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|

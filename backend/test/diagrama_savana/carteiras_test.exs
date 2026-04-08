@@ -28,7 +28,8 @@ defmodule DiagramaSavana.CarteirasTest do
 
   test "create_holding/2 com quantidade e preço médio", %{user: user} do
     {:ok, portfolio} = Carteiras.ensure_default_portfolio(user)
-    {:ok, asset} = Ativos.create_asset(%{ticker: "WEGE3", kind: :acao})
+    ticker = "TST#{System.unique_integer([:positive])}"
+    {:ok, asset} = Ativos.create_asset(%{ticker: ticker, kind: :acao})
 
     assert {:ok, holding} =
              Carteiras.create_holding(portfolio, %{

@@ -40,12 +40,7 @@ defmodule DiagramaSavana.Carteiras.PortfolioSummary do
       |> Enum.map(fn %Holding{asset: a} -> a.ticker end)
       |> Enum.uniq()
 
-    Enum.reduce(tickers, %{}, fn t, acc ->
-      case Client.fetch_quote(t) do
-        {:ok, body} -> Map.put(acc, t, {:ok, body})
-        {:error, _} -> Map.put(acc, t, :error)
-      end
-    end)
+    Client.fetch_quotes_many(tickers)
   end
 
   defp quotes_partial?(holdings, quotes) do

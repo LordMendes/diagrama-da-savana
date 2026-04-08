@@ -1,11 +1,11 @@
 defmodule DiagramaSavana.Resistencia.Criteria do
   @moduledoc """
-  Critérios da Nota de Resistência por grupo: **ações/ETFs** vs **FIIs**.
+  Critérios da Nota de Resistência por grupo: **ações/ETFs**, **FIIs** ou **cripto**.
 
   Cada critério contribui com -1, 0 ou +1; a soma é limitada entre -5 e +10 em `DiagramaSavana.Resistencia.Scoring`.
   """
 
-  @type group :: :acao | :fii
+  @type group :: :acao | :fii | :cripto
 
   @doc """
   Grupo de checklist usado para o ativo. ETFs seguem o mesmo conjunto de ações.
@@ -14,6 +14,7 @@ defmodule DiagramaSavana.Resistencia.Criteria do
   def group_for_asset_kind(:acao), do: :acao
   def group_for_asset_kind(:etf), do: :acao
   def group_for_asset_kind(:fii), do: :fii
+  def group_for_asset_kind(:cripto), do: :cripto
   def group_for_asset_kind(_), do: nil
 
   @doc """
@@ -54,13 +55,31 @@ defmodule DiagramaSavana.Resistencia.Criteria do
     ]
   end
 
+  def definitions(:cripto) do
+    [
+      %{id: "adopcao_ecossistema", label: "Adoção, utilidade e ecossistema reais"},
+      %{id: "seguranca_historico", label: "Segurança da rede e histórico de incidentes"},
+      %{id: "descentralizacao", label: "Descentralização (validação, concentração)"},
+      %{id: "liquidez_negociacao", label: "Liquidez e profundidade em mercados"},
+      %{id: "transparencia_governanca", label: "Transparência e governança do projeto"},
+      %{id: "tokenomics", label: "Tokenomics sustentável (emissão, utilidade, bloqueios)"},
+      %{id: "risco_regulatorio", label: "Risco regulatório e compliance gerenciáveis"},
+      %{id: "tecnologia_madurez", label: "Tecnologia auditada ou com histórico sólido"},
+      %{id: "moat_competitivo", label: "Diferenciação frente a competidores (vantagem)"},
+      %{id: "comunidade_desenvolvimento", label: "Comunidade e desenvolvimento ativo"},
+      %{id: "custodia_opcoes", label: "Custódia e autocustódia viáveis"},
+      %{id: "volatilidade_aceitavel", label: "Volatilidade e risco alinhados ao seu objetivo"}
+    ]
+  end
+
   @doc false
-  def ids(group) when group in [:acao, :fii] do
+  def ids(group) when group in [:acao, :fii, :cripto] do
     group |> definitions() |> Enum.map(& &1.id)
   end
 
   @doc false
   def group_for_query_param("acao"), do: {:ok, :acao}
   def group_for_query_param("fii"), do: {:ok, :fii}
+  def group_for_query_param("cripto"), do: {:ok, :cripto}
   def group_for_query_param(_), do: {:error, :invalid_kind}
 end

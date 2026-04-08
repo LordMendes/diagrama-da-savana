@@ -16,7 +16,8 @@ defmodule DiagramaSavanaWeb.API.V1.ResistanceCriteriaController do
         |> json(%{
           error: %{
             code: "parametro_invalido",
-            message: "Informe kind=acao ou kind=fii (ETFs usam o mesmo checklist de ações)."
+            message:
+              "Informe kind=acao, kind=fii ou kind=cripto (ETFs usam o mesmo checklist de ações)."
           }
         })
     end

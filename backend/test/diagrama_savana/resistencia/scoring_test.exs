@@ -79,6 +79,19 @@ defmodule DiagramaSavana.Resistencia.ScoringTest do
                Scoring.build_for_upsert(asset, %{"extra" => 1})
     end
 
+    test "soma e aplica limite para cripto" do
+      asset = %Asset{id: Ecto.UUID.generate(), kind: :cripto, ticker: "BTC"}
+
+      crit =
+        Map.new(DiagramaSavana.Resistencia.Criteria.ids(:cripto), fn id -> {id, 1} end)
+
+      assert {:ok, %{computed_score: 10, criteria_stub: stored}} =
+               Scoring.build_for_upsert(asset, crit)
+
+      assert map_size(stored) == 12
+      assert stored["adopcao_ecossistema"] == 1
+    end
+
     test "rejeita tipo de ativo sem checklist" do
       asset = %Asset{id: Ecto.UUID.generate(), kind: :renda_fixa, ticker: "SELIC"}
 

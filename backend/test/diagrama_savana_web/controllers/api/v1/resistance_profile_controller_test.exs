@@ -40,6 +40,17 @@ defmodule DiagramaSavanaWeb.API.V1.ResistanceProfileControllerTest do
       assert length(rows) == 12
       assert Enum.any?(rows, &(&1["id"] == "perenidade_negocio"))
     end
+
+    test "lista critérios de cripto", %{conn: conn, token: token} do
+      conn =
+        conn
+        |> put_req_header("authorization", "Bearer " <> token)
+        |> get("/api/v1/resistance_criteria?kind=cripto")
+
+      assert %{"data" => rows} = json_response(conn, 200)
+      assert length(rows) == 12
+      assert Enum.any?(rows, &(&1["id"] == "adopcao_ecossistema"))
+    end
   end
 
   describe "PUT /api/v1/resistance_profiles/:asset_id" do

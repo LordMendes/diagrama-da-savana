@@ -17,4 +17,13 @@ defmodule DiagramaSavana.Brapi.CryptoFallbackTest do
       assert DiagramaSavana.Brapi.CryptoFallback.matching("  ") == []
     end
   end
+
+  describe "crypto_symbol?/1" do
+    test "lista estática" do
+      assert DiagramaSavana.Brapi.CryptoFallback.crypto_symbol?("BTC")
+      assert DiagramaSavana.Brapi.CryptoFallback.crypto_symbol?("  eth  ")
+      refute DiagramaSavana.Brapi.CryptoFallback.crypto_symbol?("PETR4")
+      refute DiagramaSavana.Brapi.CryptoFallback.crypto_symbol?("")
+    end
+  end
 end

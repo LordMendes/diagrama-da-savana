@@ -39,13 +39,21 @@ config :diagrama_savana, DiagramaSavanaWeb.Endpoint,
 # Token: BRAPI_API_TOKEN or BRAPI_TOKEN (same meaning; first wins when both set in env)
 config :diagrama_savana, :brapi,
   base_url: System.get_env("BRAPI_BASE_URL", "https://brapi.dev/api"),
-  api_token: System.get_env("BRAPI_API_TOKEN") || System.get_env("BRAPI_TOKEN")
+  api_token: System.get_env("BRAPI_API_TOKEN") || System.get_env("BRAPI_TOKEN"),
+  quote_batch_size: String.to_integer(System.get_env("BRAPI_QUOTE_BATCH_SIZE", "1")),
+  # Plano gratuito da brapi: 1 ativo por requisição — `/quote/A,B,...` falha. Só ative com plano pago.
+  quote_batch_http_enabled: System.get_env("BRAPI_QUOTE_BATCH_ENABLED") in ~w(1 true yes)
 
 config :diagrama_savana, :brapi_rate_limit,
   max_requests_per_minute: String.to_integer(System.get_env("BRAPI_RATE_LIMIT_PER_MINUTE", "60"))
 
 config :diagrama_savana, :brapi_cache,
   default_ttl_seconds: String.to_integer(System.get_env("BRAPI_CACHE_TTL_SECONDS", "60"))
+
+# Simulação de aporte (API POST .../simulacao_aporte): cache em memória do resultado
+config :diagrama_savana, :simulacao_aporte_cache,
+  default_ttl_seconds:
+    String.to_integer(System.get_env("SIMULACAO_APORTE_CACHE_TTL_SECONDS", "1800"))
 
 # Optional DATABASE_URL for dev/test (overrides dev.exs / test.exs repo keys when set)
 if config_env() in [:dev, :test] do

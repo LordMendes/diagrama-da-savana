@@ -9,7 +9,9 @@ defmodule DiagramaSavana.Aportes.Simulacao do
   import Ecto.Query
 
   alias DiagramaSavana.Alvos
+  alias DiagramaSavana.Alvos.TargetAllocation
   alias DiagramaSavana.AporteMotor
+  alias DiagramaSavana.Aportes.SimulacaoCache
   alias DiagramaSavana.Brapi.Client
   alias DiagramaSavana.Carteiras
   alias DiagramaSavana.Carteiras.Holding
@@ -19,25 +21,97 @@ defmodule DiagramaSavana.Aportes.Simulacao do
 
   @doc """
   Executa a simulação para a carteira e o valor de aporte (string ou `Decimal`).
+
+  Opções:
+  - `:cache` — se `true` (padrão), reutiliza resultado em cache (~30 min) quando a
+    carteira, metas, notas de resistência e o valor normalizado não mudaram.
+    Use `cache: false` ao aplicar aporte para sempre recalcular (ex.: `Carteiras.apply_aporte_simulation/3`).
   """
-  @spec run(Portfolio.t(), String.t() | Decimal.t()) ::
+  @spec run(Portfolio.t(), String.t() | Decimal.t(), keyword()) ::
           {:ok, map()} | {:error, :invalid_amount | :negative_amount}
-  def run(%Portfolio{} = portfolio, amount) when is_binary(amount) do
+  def run(portfolio, amount, opts \\ [])
+
+  def run(%Portfolio{} = portfolio, amount, opts) when is_binary(amount) do
     case Decimal.parse(String.trim(amount)) do
-      {d, _} -> run(portfolio, d)
+      {d, _} -> run(portfolio, d, opts)
       :error -> {:error, :invalid_amount}
     end
   end
 
-  def run(%Portfolio{} = portfolio, %Decimal{} = amount) do
+  def run(%Portfolio{} = portfolio, %Decimal{} = amount, opts) when is_list(opts) do
     cond do
       Decimal.compare(amount, Decimal.new(0)) != :gt ->
         {:error, :negative_amount}
+
+      Keyword.get(opts, :cache, true) ->
+        run_cached(portfolio, amount)
 
       true ->
         {:ok, compute(portfolio, amount)}
     end
   end
+
+  defp run_cached(%Portfolio{} = portfolio, %Decimal{} = amount) do
+    version = simulation_inputs_version(portfolio.id, portfolio.user_id)
+    key = simulacao_cache_key(portfolio, amount, version)
+
+    case SimulacaoCache.get(key) do
+      {:ok, cached} ->
+        {:ok, cached}
+
+      :miss ->
+        result = compute(portfolio, amount)
+        _ = SimulacaoCache.put(key, result, ttl: simulacao_cache_ttl_seconds())
+        {:ok, result}
+    end
+  end
+
+  defp simulacao_cache_key(%Portfolio{} = portfolio, %Decimal{} = amount, version) do
+    {:simulacao_aporte, portfolio.user_id, portfolio.id, amount_cache_key(amount), version}
+  end
+
+  defp amount_cache_key(%Decimal{} = d) do
+    d |> Decimal.normalize() |> Decimal.to_string(:normal)
+  end
+
+  defp simulacao_cache_ttl_seconds do
+    Application.get_env(:diagrama_savana, :simulacao_aporte_cache, [])
+    |> Keyword.get(:default_ttl_seconds, 1800)
+  end
+
+  defp simulation_inputs_version(portfolio_id, user_id) do
+    holdings_max =
+      Repo.one(
+        from(h in Holding,
+          where: h.portfolio_id == ^portfolio_id,
+          select: max(h.updated_at)
+        )
+      )
+
+    targets_max =
+      Repo.one(
+        from(t in TargetAllocation,
+          where: t.portfolio_id == ^portfolio_id,
+          select: max(t.updated_at)
+        )
+      )
+
+    profiles_max =
+      Repo.one(
+        from(p in Profile,
+          join: h in Holding,
+          on: h.asset_id == p.asset_id,
+          where: h.portfolio_id == ^portfolio_id and p.user_id == ^user_id,
+          select: max(p.updated_at)
+        )
+      )
+
+    {coalesce_utc(holdings_max), coalesce_utc(targets_max), coalesce_utc(profiles_max)}
+  end
+
+  defp coalesce_utc(nil), do: ~U[1970-01-01 00:00:00Z]
+
+  defp coalesce_utc(%DateTime{} = dt), do: dt
 
   defp compute(%Portfolio{} = portfolio, %Decimal{} = aporte_amount) do
     holdings = Carteiras.list_holdings(portfolio)
@@ -98,12 +172,7 @@ defmodule DiagramaSavana.Aportes.Simulacao do
       |> Enum.map(fn %Holding{asset: a} -> a.ticker end)
       |> Enum.uniq()
 
-    Enum.reduce(tickers, %{}, fn t, acc ->
-      case Client.fetch_quote(t) do
-        {:ok, body} -> Map.put(acc, t, {:ok, body})
-        {:error, _} -> Map.put(acc, t, :error)
-      end
-    end)
+    Client.fetch_quotes_many(tickers)
   end
 
   defp quotes_partial?(holdings, quotes) do

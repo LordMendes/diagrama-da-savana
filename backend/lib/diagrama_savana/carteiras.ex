@@ -114,7 +114,7 @@ defmodule DiagramaSavana.Carteiras do
   def apply_aporte_simulation(%User{} = user, portfolio_id, amount_input) do
     with {:ok, %Portfolio{} = portfolio} <- get_portfolio(user, portfolio_id) do
       Repo.transaction(fn ->
-        case Simulacao.run(portfolio, amount_input) do
+        case Simulacao.run(portfolio, amount_input, cache: false) do
           {:error, reason} ->
             Repo.rollback(reason)
 

@@ -9,6 +9,7 @@ defmodule DiagramaSavana.Application do
   def start(_type, _args) do
     :ok = DiagramaSavana.Brapi.RateLimiter.ensure_table()
     :ok = DiagramaSavana.Brapi.Cache.ensure_table()
+    :ok = DiagramaSavana.Aportes.SimulacaoCache.ensure_table()
 
     children = [
       DiagramaSavanaWeb.Telemetry,

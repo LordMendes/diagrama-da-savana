@@ -24,7 +24,7 @@ defmodule DiagramaSavana.Resistencia.Scoring do
   A partir do mapa de critérios (ids → -1 | 0 | 1), calcula soma bruta e nota final.
   """
   def compute_raw_and_final(group, criteria_int_map)
-      when group in [:acao, :fii] and is_map(criteria_int_map) do
+      when group in [:acao, :fii, :cripto] and is_map(criteria_int_map) do
     raw =
       criteria_int_map
       |> Map.values()
