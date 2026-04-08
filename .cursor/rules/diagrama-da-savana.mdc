@@ -1,0 +1,55 @@
+---
+description: Padrões do projeto Diagrama da Savana (stack, pt-BR, testes, README, segurança)
+alwaysApply: true
+---
+
+# Diagrama da Savana — convenções do projeto
+
+## Stack (obrigatória)
+
+- **Backend:** Elixir, Phoenix, Ecto, PostgreSQL. Formatação: `mix format`. Nomes de módulos em `PascalCase` (ex.: `DiagramaSavana.Carteiras`). Pastas e arquivos alinhados aos contextos Phoenix/Ecto habituais.
+- **Frontend:** React 18+ com TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query (React Query), React Router. **Gerenciador de pacotes: pnpm.** Formatação: Prettier e ESLint conforme configurados no repositório.
+
+## Idioma da interface
+
+- Toda **UI e mensagens voltadas ao usuário** devem estar em **português brasileiro (pt-BR)**. Comentários de código e documentação interna podem ser em inglês ou pt-BR, conforme o restante do repositório.
+
+## Padrões de código e UX
+
+- Tratar **erros** de API de forma explícita: mensagens claras em pt-BR, sem expor detalhes internos em produção.
+- Estados de **carregamento** e vazios devem ser tratados na UI (spinners/skeletons, mensagens quando não houver dados).
+- Não commitar **segredos** (chaves de API, senhas, tokens). Usar variáveis de ambiente e documentar nomes esperados sem valores reais.
+
+## Arquivos `.env.example` por ambiente
+
+- Manter **arquivos de exemplo** para cada ambiente que o repositório usar (ex.: `backend/.env.example`, `frontend/.env.example`, ou um `.env.example` na raiz com seções `dev` / `test` / `production`). O nome exato segue a estrutura do projeto; o importante é haver um espelho **versionado** das variáveis necessárias.
+- Sempre que **criar, renomear ou remover** uma variável de ambiente, **atualizar no mesmo conjunto de mudanças** o(s) `.env.example` correspondente(s), para não ficarem desatualizados.
+- Imediatamente **acima de cada variável** (ou de um bloco coerente), usar comentário em linha `#` indicando:
+  - **Segredo:** não commitar valor real; não logar em claro; em CI/CD usar apenas secrets do provedor.
+  - **Público / não segredo:** pode versionar valor de exemplo (URLs públicas, portas locais padrão, flags não sensíveis).
+
+## Testes obrigatórios (quando houver código na área)
+
+- **Elixir:** ExUnit para lógica de domínio, schemas Ecto e contextos críticos.
+- **Frontend:** Vitest e React Testing Library para componentes e hooks críticos.
+
+## Integração brapi.dev
+
+- Ao implementar ou alterar chamadas à API **brapi.dev**, considerar **rate limiting**, **cache** e configuração por **variáveis de ambiente**. Nunca commitar chaves ou `.env` com segredos.
+
+## Ambiente local
+
+- **PostgreSQL** para desenvolvimento deve ser usado via **Docker Compose**, alinhado a `DOCS/Implementation/AGENT-WORKFLOW.md` e ao passo de infraestrutura do banco (ex.: step 2.1).
+
+## README na raiz (`README.md`)
+
+- O **`README.md`** é a entrada principal para quem clona o repositório. Deve permanecer **preciso**: sempre que uma mudança alterar como o projeto sobe (novas dependências, novos serviços no Compose, novas variáveis de ambiente, mudança de portas, comandos de build/test, ou fluxo de migrações), **atualizar o README no mesmo conjunto de mudanças** (ou apontar explicitamente para outro doc que você acabou de atualizar).
+- O README deve incluir seções claras (podem ser curtas com links para detalhes) para:
+  - **Pré-requisitos** (Elixir/Erlang, Node/pnpm, Docker, etc., conforme o repo exigir).
+  - **Configuração:** copiar `.env.example` → `.env` (ou equivalente), com referência aos arquivos de exemplo e à regra de comentários segredo vs público.
+  - **Subir dependências locais:** `docker compose` (PostgreSQL, MailHog quando existir, etc.) com o comando exato e ordem razoável (banco antes do backend quando aplicável).
+  - **Rodar o backend** (diretório, `mix deps.get`, migrações quando houver Phoenix/Ecto, `mix phx.server` ou comando vigente).
+  - **Rodar o frontend** (diretório, `pnpm install`, `pnpm dev` ou comando vigente).
+  - **Testes:** comandos para backend e frontend (pode remeter a `CONTRIBUTING.md` se a lista for longa, mas o README deve indicar pelo menos o caminho).
+- Manter coerência com **`CONTRIBUTING.md`** (se existir): não deixar instruções conflitantes entre os dois.
+- A **ordem dos passos de implementação** continua documentada em `DOCS/Implementation/AGENT-WORKFLOW.md`; o README pode linkar esse arquivo para contexto de roadmap, sem misturar com o “como rodar hoje”.

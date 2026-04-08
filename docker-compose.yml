@@ -1,0 +1,35 @@
+# Diagrama da Savana — infraestrutura local (PostgreSQL step 2.1, MailHog step 3).
+# Phoenix (API) e o frontend Vite rodam no host para hot reload. No host use
+# localhost:5433 → Postgres e localhost:1025 → SMTP (MailHog); ver README na raiz.
+name: diagrama_savana
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: diagrama_savana_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: diagrama_savana_dev
+    # Host 5432 is often taken by a local Postgres; use 5433 on the host.
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d diagrama_savana_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: diagrama_savana_mailhog
+    ports:
+      # SMTP capture (backend dev env)
+      - "1025:1025"
+      # Web UI to read messages
+      - "8025:8025"
+
+volumes:
+  postgres_data:
