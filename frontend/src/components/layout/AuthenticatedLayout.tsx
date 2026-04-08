@@ -50,9 +50,6 @@ export function AuthenticatedLayout() {
             <NavLink to="/app/historico" className={navClass}>
               Histórico
             </NavLink>
-            <NavLink to="/app/movimentacao-preco-medio" className={navClass}>
-              Preço médio
-            </NavLink>
             <NavLink to="/app/perfil" className={navClass}>
               Perfil
             </NavLink>

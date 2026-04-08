@@ -11,7 +11,6 @@ import { CalculadoraAportePage } from "@/pages/CalculadoraAportePage";
 import { CarteiraPage } from "@/pages/CarteiraPage";
 import { HistoricoPage } from "@/pages/HistoricoPage";
 import { NotaResistenciaPage } from "@/pages/NotaResistenciaPage";
-import { MovimentacaoPrecoMedioPage } from "@/pages/MovimentacaoPrecoMedioPage";
 import { PerfilPage } from "@/pages/PerfilPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
@@ -41,10 +40,6 @@ export default function App() {
           />
           <Route path="biblioteca" element={<BibliotecaAtivosPage />} />
           <Route path="historico" element={<HistoricoPage />} />
-          <Route
-            path="movimentacao-preco-medio"
-            element={<MovimentacaoPrecoMedioPage />}
-          />
           <Route path="perfil" element={<PerfilPage />} />
         </Route>
       </Route>
