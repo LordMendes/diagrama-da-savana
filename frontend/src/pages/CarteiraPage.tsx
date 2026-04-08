@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/auth-context";
 import {
   createAporte,
@@ -63,6 +63,12 @@ const KIND_OPTIONS: { value: string; label: string }[] = [
 
 function kindLabel(kind: string) {
   return KIND_OPTIONS.find((k) => k.value === kind)?.label ?? kind;
+}
+
+const MAX_MARKET_SEARCH_CACHE = 40;
+
+function marketSearchCacheKey(q: string) {
+  return q.trim().toLowerCase();
 }
 
 export function CarteiraPage() {
@@ -161,31 +167,85 @@ export function CarteiraPage() {
 
   const [tickerQuery, setTickerQuery] = useState("");
   const debouncedQ = useDebouncedValue(tickerQuery, 350);
+  const tickerSearchRef = useRef<HTMLDivElement>(null);
+  const marketSearchCache = useRef(new Map<string, MarketSearchHit[]>());
+  const searchRequestGen = useRef(0);
+  const [tickerSearchDismissed, setTickerSearchDismissed] = useState(false);
   const [searchHits, setSearchHits] = useState<MarketSearchHit[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState<MarketSearchHit | null>(
     null,
   );
+  const tickerQueryRef = useRef(tickerQuery);
+  const selectedTickerRef = useRef(selectedTicker);
+  tickerQueryRef.current = tickerQuery;
+  selectedTickerRef.current = selectedTicker;
   const [newKind, setNewKind] = useState("acao");
   const [newQty, setNewQty] = useState("");
   const [newAvg, setNewAvg] = useState("");
 
   useEffect(() => {
+    setTickerSearchDismissed(false);
+  }, [debouncedQ]);
+
+  useEffect(() => {
+    function handleMouseDown(event: MouseEvent) {
+      const el = tickerSearchRef.current;
+      if (!el?.contains(event.target as Node)) {
+        setTickerSearchDismissed(true);
+      }
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, []);
+
+  useEffect(() => {
     if (!token || debouncedQ.trim().length < 2) {
       setSearchHits([]);
+      setSearchLoading(false);
       return;
     }
+
+    // Evita nova busca após escolher um item: o debounce pode atrasar, mas o input
+    // já mostra o ticker confirmado (refs = valor atual neste render).
+    const sel = selectedTickerRef.current;
+    const tq = tickerQueryRef.current.trim().toUpperCase();
+    if (sel && tq === sel.ticker) {
+      setSearchHits([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    const cacheKey = marketSearchCacheKey(debouncedQ);
+    const cached = marketSearchCache.current.get(cacheKey);
+    if (cached) {
+      setSearchHits(cached.slice(0, 12));
+      setSearchLoading(false);
+      return;
+    }
+
     let cancelled = false;
+    const requestId = ++searchRequestGen.current;
     setSearchLoading(true);
     void searchMarketTickers(debouncedQ, token)
       .then((hits) => {
-        if (!cancelled) setSearchHits(hits.slice(0, 12));
+        if (cancelled || requestId !== searchRequestGen.current) return;
+        marketSearchCache.current.set(cacheKey, hits);
+        if (marketSearchCache.current.size > MAX_MARKET_SEARCH_CACHE) {
+          const oldest = marketSearchCache.current.keys().next().value as
+            | string
+            | undefined;
+          if (oldest !== undefined) marketSearchCache.current.delete(oldest);
+        }
+        setSearchHits(hits.slice(0, 12));
       })
       .catch(() => {
-        if (!cancelled) setSearchHits([]);
+        if (cancelled || requestId !== searchRequestGen.current) return;
+        setSearchHits([]);
       })
       .finally(() => {
-        if (!cancelled) setSearchLoading(false);
+        if (cancelled || requestId !== searchRequestGen.current) return;
+        setSearchLoading(false);
       });
     return () => {
       cancelled = true;
@@ -270,9 +330,11 @@ export function CarteiraPage() {
   const aportes = aportesQ.data?.data ?? [];
 
   const onPickHit = useCallback((h: MarketSearchHit) => {
+    searchRequestGen.current += 1;
     setSelectedTicker(h);
     setTickerQuery(h.ticker);
     setSearchHits([]);
+    setTickerSearchDismissed(true);
   }, []);
 
   const formError = useMemo(() => {
@@ -402,7 +464,7 @@ export function CarteiraPage() {
         <CardContent className="space-y-6">
           <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
             <p className="text-sm font-medium">Adicionar ativo</p>
-            <div className="relative space-y-1.5">
+            <div ref={tickerSearchRef} className="relative space-y-1.5">
               <Label htmlFor="ticker-search">Buscar ticker (brapi)</Label>
               <Input
                 id="ticker-search"
@@ -417,7 +479,7 @@ export function CarteiraPage() {
               {searchLoading ? (
                 <p className="text-xs text-muted-foreground">Buscando…</p>
               ) : null}
-              {searchHits.length > 0 ? (
+              {searchHits.length > 0 && !tickerSearchDismissed ? (
                 <ul
                   className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border border-border bg-card py-1 shadow-md"
                   role="listbox"

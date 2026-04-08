@@ -19,21 +19,35 @@ defmodule DiagramaSavana.Brapi.ClientTest do
     test "retorna dados do transport" do
       q = "uniq#{System.unique_integer([:positive])}"
 
-      expect(DiagramaSavana.Brapi.TransportMock, :get, fn _url, params ->
+      expect(DiagramaSavana.Brapi.TransportMock, :get, fn url, params ->
         assert Keyword.has_key?(params, :search)
         assert params[:search] == q
+        assert url =~ "/available"
+        refute url =~ "crypto"
         {:ok, %{"indexes" => ["^BVSP"], "stocks" => ["PETR4"]}}
       end)
 
-      assert {:ok, %{"stocks" => ["PETR4"]}} =
+      expect(DiagramaSavana.Brapi.TransportMock, :get, fn url, params ->
+        assert url =~ "crypto/available"
+        assert params[:search] == q
+        {:ok, %{"coins" => ["BTC"]}}
+      end)
+
+      assert {:ok, %{"stocks" => ["PETR4", "BTC"]}} =
                DiagramaSavana.Brapi.Client.search_tickers(q)
     end
 
     test "usa cache na segunda chamada" do
       q = "cache#{System.unique_integer([:positive])}"
 
-      expect(DiagramaSavana.Brapi.TransportMock, :get, fn _, _ ->
+      expect(DiagramaSavana.Brapi.TransportMock, :get, fn url, _ ->
+        refute url =~ "crypto"
         {:ok, %{"indexes" => [], "stocks" => ["X"]}}
+      end)
+
+      expect(DiagramaSavana.Brapi.TransportMock, :get, fn url, _ ->
+        assert url =~ "crypto/available"
+        {:ok, %{"coins" => []}}
       end)
 
       assert {:ok, _} = DiagramaSavana.Brapi.Client.search_tickers(q)

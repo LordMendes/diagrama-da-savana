@@ -34,8 +34,12 @@ defmodule DiagramaSavanaWeb.API.V1.MarketControllerTest do
 
   describe "GET /api/v1/market/search" do
     test "autenticado — repassa resposta em data", %{conn: conn, token: token} do
-      expect(DiagramaSavana.Brapi.TransportMock, :get, fn _, _ ->
-        {:ok, %{"indexes" => [], "stocks" => ["PETR4"]}}
+      expect(DiagramaSavana.Brapi.TransportMock, :get, 2, fn url, _ ->
+        if url =~ "crypto/available" do
+          {:ok, %{"coins" => ["BTC"]}}
+        else
+          {:ok, %{"indexes" => [], "stocks" => ["PETR4"]}}
+        end
       end)
 
       conn =
@@ -43,7 +47,9 @@ defmodule DiagramaSavanaWeb.API.V1.MarketControllerTest do
         |> put_req_header("authorization", "Bearer " <> token)
         |> get("/api/v1/market/search?q=pet")
 
-      assert %{"data" => %{"stocks" => ["PETR4"]}} = json_response(conn, 200)
+      assert %{"data" => %{"stocks" => stocks}} = json_response(conn, 200)
+      assert "PETR4" in stocks
+      assert "BTC" in stocks
     end
 
     test "401 sem token", %{conn: conn} do

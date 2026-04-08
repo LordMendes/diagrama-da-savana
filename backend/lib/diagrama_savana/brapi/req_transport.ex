@@ -22,7 +22,14 @@ defmodule DiagramaSavana.Brapi.ReqTransport do
         {:error, :rate_limited}
 
       {:ok, %Req.Response{status: status}} ->
-        Logger.warning("brapi HTTP status=#{status} url=#{scrub_url(url)}")
+        path = scrub_url(url)
+
+        if status in [401, 403, 404] and String.contains?(path, "crypto/available") do
+          Logger.debug("brapi HTTP status=#{status} url=#{path}")
+        else
+          Logger.warning("brapi HTTP status=#{status} url=#{path}")
+        end
+
         {:error, :http_error}
 
       {:error, reason} ->

@@ -180,9 +180,15 @@ export async function searchMarketTickers(
   if (!Array.isArray(stocks)) return [];
 
   const out: MarketSearchHit[] = [];
+  const pushTicker = (ticker: string, name: string) => {
+    const u = ticker.toUpperCase();
+    if (out.some((x) => x.ticker === u)) return;
+    out.push({ ticker: u, name });
+  };
+
   for (const item of stocks) {
     if (typeof item === "string") {
-      out.push({ ticker: item.toUpperCase(), name: item });
+      pushTicker(item, item);
       continue;
     }
     if (item && typeof item === "object") {
@@ -194,8 +200,16 @@ export async function searchMarketTickers(
         (typeof o.shortName === "string" && o.shortName) ||
         (typeof o.short_name === "string" && o.short_name) ||
         t;
-      out.push({ ticker: t.toUpperCase(), name });
+      pushTicker(t, name);
     }
   }
+
+  const coins = raw.coins;
+  if (Array.isArray(coins)) {
+    for (const c of coins) {
+      if (typeof c === "string" && c.trim()) pushTicker(c, c);
+    }
+  }
+
   return out;
 }

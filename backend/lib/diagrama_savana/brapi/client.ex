@@ -15,7 +15,8 @@ defmodule DiagramaSavana.Brapi.Client do
   @type quote_opts :: [range: String.t(), interval: String.t()]
 
   @doc """
-  Searches tickers (ações, FIIs, ETFs, etc.) via `/available?search=`.
+  Searches tickers (ações, FIIs, ETFs) via `/available?search=` and merges
+  criptomoedas from `/v2/crypto/available?search=` into the `stocks` list.
 
   Empty `query` returns an empty result without calling the API (saves quota).
   """
@@ -34,16 +35,65 @@ defmodule DiagramaSavana.Brapi.Client do
           {:ok, cached}
 
         :miss ->
-          with :ok <- DiagramaSavana.Brapi.RateLimiter.acquire(:available),
-               {:ok, body} <- get_json("/available", search: q),
-               :ok <- DiagramaSavana.Brapi.Cache.put(cache_key, body, ttl: cache_ttl()) do
-            {:ok, body}
-          else
-            {:error, :rate_limited} = e -> e
-            {:error, reason} -> {:error, reason}
+          case DiagramaSavana.Brapi.RateLimiter.acquire(:available) do
+            {:error, :rate_limited} = e ->
+              e
+
+            :ok ->
+              case get_json("/available", search: q) do
+                {:error, :rate_limited} = e ->
+                  e
+
+                {:error, reason} ->
+                  {:error, reason}
+
+                {:ok, body} ->
+                  merged = merge_crypto_search_results(body, q)
+
+                  case DiagramaSavana.Brapi.Cache.put(cache_key, merged, ttl: cache_ttl()) do
+                    :ok -> {:ok, merged}
+                  end
+              end
           end
       end
     end
+  end
+
+  defp merge_crypto_search_results(body, q) when is_map(body) do
+    stocks = Map.get(body, "stocks", [])
+    stocks = if is_list(stocks), do: stocks, else: []
+
+    extras = fetch_crypto_coin_tickers(q)
+    Map.put(body, "stocks", stocks ++ extras)
+  end
+
+  defp fetch_crypto_coin_tickers(q) do
+    api_coins =
+      case DiagramaSavana.Brapi.RateLimiter.acquire(:available) do
+        {:error, :rate_limited} ->
+          []
+
+        :ok ->
+          case get_json("/v2/crypto/available", search: q) do
+            {:ok, %{"coins" => coins}} when is_list(coins) ->
+              coins |> Enum.filter(&is_binary/1)
+
+            {:ok, _} ->
+              []
+
+            {:error, _} ->
+              []
+          end
+      end
+
+    coins =
+      if api_coins != [] do
+        api_coins
+      else
+        DiagramaSavana.Brapi.CryptoFallback.matching(q)
+      end
+
+    Enum.map(coins, &String.upcase/1)
   end
 
   @doc """
